@@ -8,305 +8,411 @@ import {
   TextInput, 
   Switch,
   SafeAreaView,
-  Platform
+  Platform,
+  Image
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 
 export default function App() {
-  const [step, setStep] = useState(1);
+  const [currentPage, setCurrentPage] = useState('home'); // 'home', 'agendamento_sucesso'
+  const [selectedArea, setSelectedArea] = useState('todos');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Controle de agendamento temporário
+  const [selectedAdvogado, setSelectedAdvogado] = useState(null);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [selectedTime, setSelectedTime] = useState(null);
+
+  // Form final
+  const [step, setStep] = useState(1); // 1: Escolha no Card / 2: Formulário LGPD / 3: Sucesso
   const [formData, setFormData] = useState({
-    area: '',
-    advogado: '',
-    data: '',
-    horario: '',
     nome: '',
     email: '',
     telefone: '',
-    documento: '',
     termos: false
   });
 
   const areas = [
-    { id: 'civil', nome: 'Direito Civil e Família', icon: 'user', desc: 'Divórcio, inventário e bens' },
-    { id: 'trabalhista', nome: 'Direito Trabalhista', icon: 'briefcase', desc: 'Rescisões e direitos do trabalhador' },
-    { id: 'empresarial', nome: 'Direito Empresarial', icon: 'activity', desc: 'Assessoria jurídica e societária' },
-    { id: 'penal', nome: 'Direito Penal', icon: 'shield', desc: 'Defesas, inquéritos e acompanhamento' },
+    { id: 'todos', nome: 'Todas as Áreas', icon: 'grid' },
+    { id: 'civil', nome: 'Civil e Família', icon: 'user' },
+    { id: 'trabalhista', nome: 'Trabalhista', icon: 'briefcase' },
+    { id: 'empresarial', nome: 'Empresarial', icon: 'activity' },
+    { id: 'penal', nome: 'Penal', icon: 'shield' },
   ];
 
-  const advogadosPorArea = {
-    civil: [
-      { id: '1', nome: 'Dra. Mariana Silva', cargo: 'Especialista em Família', OAB: 'OAB/SP 123.456' },
-      { id: '2', nome: 'Dr. Roberto Santos', cargo: 'Especialista em Contratos', OAB: 'OAB/SP 234.567' }
-    ],
-    trabalhista: [
-      { id: '3', nome: 'Dr. Carlos Eduardo', cargo: 'Direito do Trabalho', OAB: 'OAB/SP 345.678' }
-    ],
-    empresarial: [
-      { id: '4', nome: 'Dra. Beatriz Costa', cargo: 'Societário e Tributos', OAB: 'OAB/SP 456.789' }
-    ],
-    penal: [
-      { id: '5', nome: 'Dr. Thiago Alcântara', cargo: 'Criminalista Sênior', OAB: 'OAB/SP 567.890' }
-    ]
-  };
+  const advogados = [
+    { 
+      id: '1', 
+      nome: 'Dra. Mariana Silva', 
+      cargo: 'Especialista em Família e Sucessões', 
+      OAB: 'OAB/SP 123.456',
+      area: 'civil',
+      desc: 'Advogada dedicada a resoluções consensuais e planejamento patrimonial familiar. Foco em acolhimento e escuta ativa de cada caso.',
+      consultas: 1420,
+      avatar: 'MS'
+    },
+    { 
+      id: '2', 
+      nome: 'Dr. Roberto Santos', 
+      cargo: 'Direito Contratual e Imobiliário', 
+      OAB: 'OAB/SP 234.567',
+      area: 'civil',
+      desc: 'Focado em segurança em transações de imóveis, elaboração e revisão de contratos complexos civis e comerciais.',
+      consultas: 890,
+      avatar: 'RS'
+    },
+    { 
+      id: '3', 
+      nome: 'Dr. Carlos Eduardo', 
+      cargo: 'Especialista em Relações do Trabalho', 
+      OAB: 'OAB/SP 345.678',
+      area: 'trabalhista',
+      desc: 'Atuação preventiva corporativa e defesa de direitos do trabalhador de alta gerência. Pareceres técnicos detalhados.',
+      consultas: 1150,
+      avatar: 'CE'
+    },
+    { 
+      id: '4', 
+      nome: 'Dra. Beatriz Costa', 
+      cargo: 'Consultora de Direito Empresarial', 
+      OAB: 'OAB/SP 456.789',
+      area: 'empresarial',
+      desc: 'Assessoria em estruturação societária, acordos de sócios e proteção à propriedade intelectual para Startups e PMEs.',
+      consultas: 620,
+      avatar: 'BC'
+    }
+  ];
 
   const datasDisponiveis = [
-    { data: '2026-07-20', diaSemana: 'Segunda-feira' },
-    { data: '2026-07-21', diaSemana: 'Terça-feira' },
-    { data: '2026-07-22', diaSemana: 'Quarta-feira' }
+    { data: '2026-07-20', diaSemana: 'SEG', diaNum: '20' },
+    { data: '2026-07-21', diaSemana: 'TER', diaNum: '21' },
+    { data: '2026-07-22', diaSemana: 'QUA', diaNum: '22' },
+    { data: '2026-07-23', diaSemana: 'QUI', diaNum: '23' }
   ];
 
   const horariosDisponiveis = ['09:00', '10:30', '14:00', '15:30', '17:00'];
 
-  const handleSelectArea = (areaId) => {
-    setFormData({ ...formData, area: areaId, advogado: '' });
-    setStep(2);
+  const handleSelectSlot = (adv, data, hora) => {
+    setSelectedAdvogado(adv);
+    setSelectedDate(data);
+    setSelectedTime(hora);
+    setStep(2); // Avança para o form LGPD
   };
 
-  const handleSelectAdvogado = (advName) => {
-    setFormData({ ...formData, advogado: advName });
-    setStep(3);
-  };
-
-  const handleSelectDataHora = (data, horario) => {
-    setFormData({ ...formData, data, horario });
-    setStep(4);
-  };
-
-  const handleSubmit = () => {
-    if (formData.termos && formData.nome && formData.email) {
-      setStep(5);
+  const handleConfirmAgendamento = () => {
+    if (formData.nome && formData.email && formData.termos) {
+      setStep(3); // Sucesso
     }
   };
 
+  const handleReset = () => {
+    setSelectedAdvogado(null);
+    setSelectedDate(null);
+    setSelectedTime(null);
+    setFormData({ nome: '', email: '', telefone: '', termos: false });
+    setStep(1);
+    setCurrentPage('home');
+  };
+
+  // Filtragem dos Especialistas
+  const filteredAdvogados = advogados.filter(adv => {
+    const matchesArea = selectedArea === 'todos' || adv.area === selectedArea;
+    const matchesSearch = adv.nome.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                          adv.cargo.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesArea && matchesSearch;
+  });
+
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header Seguro */}
-      <View style={styles.header}>
-        <View style={styles.headerTitleContainer}>
-          <Feather name="scale" size={22} color="#f59e0b" />
-          <Text style={styles.headerTitle}>CONSULLEX</Text>
+      
+      {/* 1. HEADER (Zenklub Style) */}
+      <View style={styles.navbar}>
+        <View style={styles.navbarLeft}>
+          <Feather name="scale" size={24} color="#6d28d9" />
+          <Text style={styles.logoText}>consullex</Text>
         </View>
-        <View style={styles.badge}>
-          <Feather name="lock" size={12} color="#34d399" />
-          <Text style={styles.badgeText}>Segurança SSL</Text>
+        <View style={styles.navbarRight}>
+          <Text style={styles.navLink}>Para Empresas</Text>
+          <Text style={styles.navLink}>Especialistas</Text>
+          <TouchableOpacity style={styles.btnNavPrimary}>
+            <Text style={styles.btnNavPrimaryText}>Atendimento Urgente</Text>
+          </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
         
-        {/* Progress Tracker */}
-        {step < 5 && (
-          <View style={styles.trackerContainer}>
-            <Text style={styles.trackerText}>Passo {step} de 4</Text>
-            <View style={styles.progressBarBg}>
-              <View style={[styles.progressBar, { width: `${(step / 4) * 100}%` }]} />
-            </View>
-          </View>
-        )}
-
-        {/* Passo 1: Áreas */}
-        {step === 1 && (
-          <View style={styles.stepContainer}>
-            <Text style={styles.title}>Escolha a Área de Atendimento</Text>
-            <Text style={styles.subtitle}>Selecione a especialidade jurídica para o seu caso.</Text>
+        {currentPage === 'home' && step === 1 && (
+          <View>
             
-            {areas.map((a) => (
-              <TouchableOpacity 
-                key={a.id} 
-                style={styles.card} 
-                onPress={() => handleSelectArea(a.id)}
-              >
-                <View style={styles.iconContainer}>
-                  <Feather name={a.icon} size={22} color="#f59e0b" />
+            {/* 2. HERO SECTION */}
+            <View style={styles.heroSection}>
+              <View style={styles.heroLeft}>
+                <View style={styles.heroBadge}>
+                  <Text style={styles.heroBadgeText}>O melhor benefício de segurança jurídica</Text>
                 </View>
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>{a.nome}</Text>
-                  <Text style={styles.cardDesc}>{a.desc}</Text>
+                <Text style={styles.heroTitle}>Apoio jurídico especializado que cabe na sua rotina</Text>
+                <Text style={styles.heroSubtitle}>
+                  Simplificamos o contato com advogados éticos e especializados. Agende consultas online criptografadas e resolva suas pendências sem burocracia.
+                </Text>
+                
+                {/* Search Bar */}
+                <View style={styles.searchBarContainer}>
+                  <Feather name="search" size={20} color="#64748b" />
+                  <TextInput 
+                    placeholder="Procure por nome, especialidade jurídica..."
+                    placeholderTextColor="#64748b"
+                    style={styles.searchInput}
+                    value={searchQuery}
+                    onChangeText={setSearchQuery}
+                  />
                 </View>
-                <Feather name="chevron-right" size={18} color="#475569" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
+              </View>
 
-        {/* Passo 2: Advogados */}
-        {step === 2 && (
-          <View style={styles.stepContainer}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.title}>Selecione o Profissional</Text>
-              <TouchableOpacity onPress={() => setStep(1)} style={styles.backButton}>
-                <Feather name="arrow-left" size={14} color="#94a3b8" />
-                <Text style={styles.backText}>Voltar</Text>
-              </TouchableOpacity>
+              {/* Lado Direito do Hero (Ilustrativo) */}
+              {Platform.OS === 'web' && (
+                <View style={styles.heroRight}>
+                  <View style={styles.heroIllustrationCard}>
+                    <Feather name="shield-off" size={40} color="#6d28d9" style={{ marginBottom: 12 }} />
+                    <Text style={styles.illustrationCardTitle}>Ambiente Seguro</Text>
+                    <Text style={styles.illustrationCardDesc}>Todas as consultas e trocas de arquivos contam com segurança de sigilo profissional e LGPD.</Text>
+                  </View>
+                </View>
+              )}
             </View>
 
-            {advogadosPorArea[formData.area]?.map((adv) => (
-              <TouchableOpacity 
-                key={adv.id} 
-                style={styles.card} 
-                onPress={() => handleSelectAdvogado(adv.nome)}
-              >
-                <View style={styles.avatar}>
-                  <Text style={styles.avatarText}>{adv.nome.split(' ').pop().charAt(0)}</Text>
-                </View>
-                <View style={styles.cardTextContainer}>
-                  <Text style={styles.cardTitle}>{adv.nome}</Text>
-                  <Text style={styles.cardDesc}>{adv.cargo}</Text>
-                  <Text style={styles.oabText}>{adv.OAB}</Text>
-                </View>
-                <Feather name="chevron-right" size={18} color="#475569" />
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Passo 3: Data e Hora */}
-        {step === 3 && (
-          <View style={styles.stepContainer}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.title}>Agende sua Consulta</Text>
-              <TouchableOpacity onPress={() => setStep(2)} style={styles.backButton}>
-                <Feather name="arrow-left" size={14} color="#94a3b8" />
-                <Text style={styles.backText}>Voltar</Text>
-              </TouchableOpacity>
+            {/* 3. FILTRO DE ÁREAS (BOTÕES ESTILO ZENKLUB) */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.sectionTitle}>Selecione a área do seu interesse</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.areaFiltersScroll}>
+                {areas.map(area => (
+                  <TouchableOpacity 
+                    key={area.id}
+                    style={[
+                      styles.filterTag,
+                      selectedArea === area.id && styles.filterTagActive
+                    ]}
+                    onPress={() => setSelectedArea(area.id)}
+                  >
+                    <Feather name={area.icon} size={14} color={selectedArea === area.id ? "#ffffff" : "#6d28d9"} />
+                    <Text style={[styles.filterTagText, selectedArea === area.id && styles.filterTagTextActive]}>
+                      {area.nome}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
             </View>
 
-            <Text style={styles.sectionLabel}>1. Escolha o dia:</Text>
-            <View style={styles.grid}>
-              {datasDisponiveis.map((d) => (
-                <TouchableOpacity
-                  key={d.data}
-                  style={[
-                    styles.gridButton,
-                    formData.data === d.data && styles.gridButtonActive
-                  ]}
-                  onPress={() => setFormData({ ...formData, data: d.data, horario: '' })}
-                >
-                  <Text style={[styles.gridButtonTitle, formData.data === d.data && styles.textDark]}>
-                    {d.data.split('-')[2]}/{d.data.split('-')[1]}
-                  </Text>
-                  <Text style={[styles.gridButtonSub, formData.data === d.data && styles.textDark]}>
-                    {d.diaSemana}
-                  </Text>
-                </TouchableOpacity>
+            {/* 4. VITRINE DE ADVOGADOS COM AGENDA INTEGRADA */}
+            <View style={styles.sectionContainer}>
+              <Text style={styles.resultsCount}>Encontramos {filteredAdvogados.length} especialistas disponíveis</Text>
+              
+              {filteredAdvogados.map(adv => (
+                <View key={adv.id} style={styles.expertCard}>
+                  
+                  {/* Perfil Técnico */}
+                  <View style={styles.expertInfoSide}>
+                    <View style={styles.expertHeaderRow}>
+                      <View style={styles.expertAvatar}>
+                        <Text style={styles.expertAvatarText}>{adv.avatar}</Text>
+                      </View>
+                      <View style={styles.expertTitleCol}>
+                        <View style={styles.expertNameContainer}>
+                          <Text style={styles.expertName}>{adv.nome}</Text>
+                          <Feather name="check-circle" size={16} color="#6d28d9" style={{ marginLeft: 6 }} />
+                        </View>
+                        <Text style={styles.expertCargo}>{adv.cargo}</Text>
+                        <Text style={styles.expertOab}>{adv.OAB}</Text>
+                      </View>
+                    </View>
+
+                    <Text style={styles.expertDesc}>{adv.desc}</Text>
+
+                    <View style={styles.expertStatsRow}>
+                      <View style={styles.statBadge}>
+                        <Feather name="message-square" size={12} color="#475569" />
+                        <Text style={styles.statBadgeText}>{adv.consultas} atendimentos</Text>
+                      </View>
+                      <View style={styles.statBadge}>
+                        <Feather name="star" size={12} color="#eab308" />
+                        <Text style={styles.statBadgeText}>5.0 (Excelente)</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Agenda Integrada Lateral (Zenklub UX) */}
+                  <View style={styles.expertScheduleSide}>
+                    <Text style={styles.scheduleTitle}>Selecione uma data e horário:</Text>
+                    
+                    {/* Linha das Datas */}
+                    <View style={styles.daysRow}>
+                      {datasDisponiveis.map(d => (
+                        <TouchableOpacity 
+                          key={d.data}
+                          style={[
+                            styles.dayColumn,
+                            selectedDate === d.data && styles.dayColumnActive
+                          ]}
+                          onPress={() => {
+                            setSelectedDate(d.data);
+                            setSelectedAdvogado(adv);
+                          }}
+                        >
+                          <Text style={[styles.dayText, selectedDate === d.data && styles.dayTextActive]}>{d.diaSemana}</Text>
+                          <Text style={[styles.dayNum, selectedDate === d.data && styles.dayNumActive]}>{d.diaNum}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Horários para o dia selecionado */}
+                    <View style={styles.hoursGrid}>
+                      {horariosDisponiveis.map(h => {
+                        const isThisAdv = selectedAdvogado?.id === adv.id;
+                        return (
+                          <TouchableOpacity 
+                            key={h}
+                            style={[
+                              styles.hourButton,
+                              isThisAdv && selectedTime === h && styles.hourButtonActive
+                            ]}
+                            onPress={() => handleSelectSlot(adv, selectedDate || datasDisponiveis[0].data, h)}
+                          >
+                            <Text style={[
+                              styles.hourButtonText,
+                              isThisAdv && selectedTime === h && styles.hourButtonTextActive
+                            ]}>{h}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    <Text style={styles.legalNotice}>Consultas em conformidade com o Código de Ética da OAB.</Text>
+                  </View>
+
+                </View>
               ))}
             </View>
 
-            {formData.data !== '' && (
-              <View style={{ marginTop: 20 }}>
-                <Text style={styles.sectionLabel}>2. Escolha o horário:</Text>
-                <View style={styles.gridHorarios}>
-                  {horariosDisponiveis.map((h) => (
-                    <TouchableOpacity
-                      key={h}
-                      style={[
-                        styles.horarioButton,
-                        formData.horario === h && styles.horarioButtonActive
-                      ]}
-                      onPress={() => handleSelectDataHora(formData.data, h)}
-                    >
-                      <Text style={[styles.horarioText, formData.horario === h && styles.textDark]}>
-                        {h}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+            {/* 5. SEÇÃO INSTITUCIONAL / CONFIANÇA */}
+            <View style={styles.trustSection}>
+              <Text style={styles.trustTitle}>Segurança e transparência jurídica com tecnologia</Text>
+              
+              <View style={styles.trustGrid}>
+                <View style={styles.trustItem}>
+                  <Text style={styles.trustItemValue}>100%</Text>
+                  <Text style={styles.trustItemLabel}>Sigilo Profissional assegurado por criptografia de ponta</Text>
+                </View>
+                <View style={styles.trustItem}>
+                  <Text style={styles.trustItemValue}>LGPD</Text>
+                  <Text style={styles.trustItemLabel}>Conformidade rigorosa no tratamento e custódia de dados</Text>
+                </View>
+                <View style={styles.trustItem}>
+                  <Text style={styles.trustItemValue}>OAB</Text>
+                  <Text style={styles.trustItemLabel}>Profissionais devidamente credenciados e habilitados</Text>
                 </View>
               </View>
-            )}
+            </View>
+
           </View>
         )}
 
-        {/* Passo 4: Dados Pessoais */}
-        {step === 4 && (
-          <View style={styles.stepContainer}>
-            <View style={styles.rowBetween}>
-              <Text style={styles.title}>Seus Dados</Text>
-              <TouchableOpacity onPress={() => setStep(3)} style={styles.backButton}>
-                <Feather name="arrow-left" size={14} color="#94a3b8" />
-                <Text style={styles.backText}>Voltar</Text>
-              </TouchableOpacity>
-            </View>
+        {/* 6. FORMULÁRIO DE CONFIRMAÇÃO (Após clicar no Horário) */}
+        {step === 2 && selectedAdvogado && (
+          <View style={styles.formContainer}>
+            <TouchableOpacity style={styles.backLink} onPress={() => setStep(1)}>
+              <Feather name="arrow-left" size={16} color="#6d28d9" />
+              <Text style={styles.backLinkLabel}>Voltar para especialistas</Text>
+            </TouchableOpacity>
 
-            <View style={styles.form}>
-              <Text style={styles.inputLabel}>Nome Completo</Text>
-              <TextInput
+            <Text style={styles.formMainTitle}>Complete seu agendamento seguro</Text>
+            <Text style={styles.formMainSubtitle}>Você escolheu falar com {selectedAdvogado.nome} no dia {selectedDate.split('-').reverse().join('/')} às {selectedTime}.</Text>
+
+            <View style={styles.formBox}>
+              <Text style={styles.inputLabel}>Seu Nome Completo</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="Seu nome completo"
-                placeholderTextColor="#475569"
+                placeholder="Insira seu nome"
+                placeholderTextColor="#94a3b8"
                 value={formData.nome}
-                onChangeText={(text) => setFormData({ ...formData, nome: text })}
+                onChangeText={(text) => setFormData({...formData, nome: text})}
               />
 
-              <Text style={styles.inputLabel}>E-mail</Text>
-              <TextInput
+              <Text style={styles.inputLabel}>Seu Melhor E-mail</Text>
+              <TextInput 
                 style={styles.input}
-                placeholder="exemplo@email.com"
-                placeholderTextColor="#475569"
-                keyboardType="email-address"
+                placeholder="exemplo@empresa.com"
+                placeholderTextColor="#94a3b8"
                 autoCapitalize="none"
+                keyboardType="email-address"
                 value={formData.email}
-                onChangeText={(text) => setFormData({ ...formData, email: text })}
+                onChangeText={(text) => setFormData({...formData, email: text})}
               />
 
-              <Text style={styles.inputLabel}>WhatsApp / Celular</Text>
-              <TextInput
+              <Text style={styles.inputLabel}>WhatsApp para Contato</Text>
+              <TextInput 
                 style={styles.input}
                 placeholder="(11) 99999-9999"
-                placeholderTextColor="#475569"
+                placeholderTextColor="#94a3b8"
                 keyboardType="phone-pad"
                 value={formData.telefone}
-                onChangeText={(text) => setFormData({ ...formData, telefone: text })}
+                onChangeText={(text) => setFormData({...formData, telefone: text})}
               />
 
-              <View style={styles.switchContainer}>
-                <Switch
+              <View style={styles.lgpdBox}>
+                <Switch 
                   value={formData.termos}
-                  onValueChange={(val) => setFormData({ ...formData, termos: val })}
-                  trackColor={{ false: '#1e293b', true: '#f59e0b' }}
-                  thumbColor={formData.termos ? '#ffffff' : '#94a3b8'}
+                  onValueChange={(val) => setFormData({...formData, termos: val})}
+                  trackColor={{ false: '#cbd5e1', true: '#6d28d9' }}
                 />
-                <Text style={styles.switchText}>
-                  Autorizo o tratamento de meus dados em conformidade com a LGPD para fins de agendamento e contato.
+                <Text style={styles.lgpdText}>
+                  Estou de acordo com a Política de Privacidade e dou consentimento para fins de agendamento de consulta de acordo com as regras da OAB e LGPD.
                 </Text>
               </View>
 
               <TouchableOpacity 
-                style={[styles.submitButton, !formData.termos && styles.buttonDisabled]}
-                disabled={!formData.termos}
-                onPress={handleSubmit}
+                style={[styles.btnSubmit, (!formData.nome || !formData.email || !formData.termos) && styles.btnSubmitDisabled]}
+                disabled={!formData.nome || !formData.email || !formData.termos}
+                onPress={handleConfirmAgendamento}
               >
-                <Text style={styles.submitButtonText}>Confirmar Agendamento Seguro</Text>
+                <Text style={styles.btnSubmitText}>Solicitar Confirmação de Agenda</Text>
               </TouchableOpacity>
             </View>
           </View>
         )}
 
-        {/* Passo 5: Sucesso */}
-        {step === 5 && (
+        {/* 7. TELA DE SUCESSO */}
+        {step === 3 && (
           <View style={styles.successContainer}>
-            <Feather name="check-circle" size={64} color="#10b981" />
-            <Text style={styles.successTitle}>Confirmado!</Text>
-            <Text style={styles.successSubtitle}>Sua reunião com criptografia de ponta a ponta está agendada.</Text>
+            <View style={styles.successIconBox}>
+              <Feather name="check" size={40} color="#ffffff" />
+            </View>
+            <Text style={styles.successTitle}>Solicitação Realizada!</Text>
+            <Text style={styles.successSubtitle}>
+              O escritório enviou a confirmação e o link de acesso seguro para a sua sala de conferência por e-mail e WhatsApp.
+            </Text>
 
-            <View style={styles.summaryBox}>
-              <Text style={styles.summaryItem}>👨‍⚖️ Profissional: <Text style={styles.boldText}>{formData.advogado}</Text></Text>
-              <Text style={styles.summaryItem}>📅 Data: <Text style={styles.boldText}>{formData.data.split('-').reverse().join('/')} às {formData.horario}</Text></Text>
-              <Text style={styles.summaryItem}>📧 E-mail: <Text style={styles.boldText}>{formData.email}</Text></Text>
+            <View style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Detalhes da Reserva:</Text>
+              <Text style={styles.summaryText}>⚖️ Advogado: <Text style={styles.bold}>{selectedAdvogado?.nome}</Text></Text>
+              <Text style={styles.summaryText}>📆 Data: <Text style={styles.bold}>{selectedDate?.split('-').reverse().join('/')}</Text></Text>
+              <Text style={styles.summaryText}>⏰ Horário: <Text style={styles.bold}>{selectedTime}</Text></Text>
+              <Text style={styles.summaryText}>🔒 Segurança: <Text style={styles.bold}>Link Exclusivo com Criptografia</Text></Text>
             </View>
 
-            <TouchableOpacity 
-              style={[styles.card, { justifyContent: 'center' }]}
-              onPress={() => {
-                setStep(1);
-                setFormData({ area: '', advogado: '', data: '', horario: '', nome: '', email: '', telefone: '', documento: '', termos: false });
-              }}
-            >
-              <Text style={styles.cardTitle}>Fazer outro agendamento</Text>
+            <TouchableOpacity style={styles.btnReset} onPress={handleReset}>
+              <Text style={styles.btnResetText}>Voltar para a Página Principal</Text>
             </TouchableOpacity>
           </View>
         )}
 
       </ScrollView>
+
+      {/* FOOTER */}
+      <View style={styles.footer}>
+        <Text style={styles.footerText}>© 2026 Consullex Plataforma de Serviços Tecnológicos Jurídicos. Todos os direitos reservados.</Text>
+        <Text style={styles.footerSubText}>Nos termos do Provimento 205/2021 da OAB, esta ferramenta atua de forma estritamente informativa de facilitação de contato inicial, sendo vedada a captação mercantilista de clientela.</Text>
+      </View>
+
     </SafeAreaView>
   );
 }
@@ -314,277 +420,561 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617', // bg-slate-950
+    backgroundColor: '#f8fafc', // Fundo claro clássico das startups de bem-estar/medicina/saúde
   },
-  header: {
+  navbar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingHorizontal: 32,
+    paddingVertical: 18,
+    backgroundColor: '#ffffff',
     borderBottomWidth: 1,
-    borderBottomColor: '#1e293b',
-    backgroundColor: '#0f172a',
+    borderBottomColor: '#f1f5f9',
+    ...Platform.select({
+      web: { position: 'sticky', top: 0, zIndex: 100 }
+    })
   },
-  headerTitleContainer: {
+  navbarLeft: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
   },
-  headerTitle: {
-    color: '#ffffff',
-    fontSize: 18,
+  logoText: {
+    fontSize: 22,
     fontWeight: 'bold',
-    letterSpacing: 1,
+    color: '#6d28d9', // Roxo clássico inspirado no Zenklub
+    letterSpacing: -0.5,
   },
-  badge: {
+  navbarRight: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(6, 78, 59, 0.4)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 99,
-    borderWidth: 1,
-    borderColor: 'rgba(16, 185, 129, 0.3)',
-    gap: 4,
+    gap: 24,
+    display: Platform.OS === 'web' ? 'flex' : 'none',
   },
-  badgeText: {
-    color: '#34d399',
-    fontSize: 11,
+  navLink: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '500',
+    cursor: 'pointer',
+  },
+  btnNavPrimary: {
+    backgroundColor: '#6d28d9',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  btnNavPrimaryText: {
+    color: '#ffffff',
+    fontWeight: '600',
+    fontSize: 13,
+  },
+  scrollContainer: {
+    paddingBottom: 60,
+  },
+  heroSection: {
+    flexDirection: 'row',
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 32,
+    paddingVertical: 60,
+    borderBottomWidth: 1,
+    borderBottomColor: '#e2e8f0',
+    gap: 40,
+  },
+  heroLeft: {
+    flex: 1,
+    justifyContent: 'center',
+    maxWidth: 640,
+  },
+  heroRight: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#f3e8ff',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 99,
+    marginBottom: 16,
+  },
+  heroBadgeText: {
+    color: '#6d28d9',
+    fontSize: 12,
     fontWeight: '600',
   },
-  scrollContent: {
-    padding: 20,
-    maxWidth: Platform.OS === 'web' ? 600 : '100%',
+  heroTitle: {
+    fontSize: 38,
+    fontWeight: '800',
+    color: '#0f172a',
+    lineHeight: 46,
+    letterSpacing: -1,
+  },
+  heroSubtitle: {
+    fontSize: 16,
+    color: '#475569',
+    lineHeight: 26,
+    marginTop: 16,
+    marginBottom: 32,
+  },
+  searchBarContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    maxWidth: 500,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 10,
+    color: '#0f172a',
+    fontSize: 15,
+    borderWidth: 0,
+    ...Platform.select({
+      web: { outlineStyle: 'none' }
+    })
+  },
+  heroIllustrationCard: {
+    backgroundColor: '#f8fafc',
+    borderRadius: 24,
+    padding: 32,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    width: '100%',
+    maxWidth: 380,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 12,
+  },
+  illustrationCardTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 8,
+  },
+  illustrationCardDesc: {
+    fontSize: 13,
+    color: '#64748b',
+    lineHeight: 20,
+  },
+  sectionContainer: {
+    paddingHorizontal: 32,
+    paddingTop: 40,
+    maxWidth: 1200,
     width: '100%',
     alignSelf: 'center',
   },
-  trackerContainer: {
-    marginBottom: 24,
-  },
-  trackerText: {
-    color: '#94a3b8',
-    fontSize: 12,
-    marginBottom: 6,
-  },
-  progressBarBg: {
-    height: 6,
-    backgroundColor: '#1e293b',
-    borderRadius: 99,
-    overflow: 'hidden',
-  },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#f59e0b',
-  },
-  stepContainer: {
-    gap: 16,
-  },
-  title: {
+  sectionTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 18,
   },
-  subtitle: {
-    fontSize: 14,
-    color: '#94a3b8',
-    marginTop: -8,
-    marginBottom: 8,
+  areaFiltersScroll: {
+    gap: 10,
+    paddingBottom: 10,
   },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#0f172a',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    borderRadius: 12,
-    padding: 16,
-    gap: 16,
-  },
-  iconContainer: {
-    backgroundColor: '#1e293b',
-    padding: 10,
-    borderRadius: 8,
-  },
-  cardTextContainer: {
-    flex: 1,
-  },
-  cardTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cardDesc: {
-    color: '#94a3b8',
-    fontSize: 13,
-    marginTop: 2,
-  },
-  rowBetween: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  backButton: {
+  filterTag: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    backgroundColor: '#ffffff',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 99,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
-  backText: {
-    color: '#94a3b8',
+  filterTagActive: {
+    backgroundColor: '#6d28d9',
+    borderColor: '#6d28d9',
+  },
+  filterTagText: {
+    color: '#475569',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  filterTagTextActive: {
+    color: '#ffffff',
+  },
+  resultsCount: {
     fontSize: 14,
+    color: '#64748b',
+    marginBottom: 16,
   },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(245, 158, 11, 0.1)',
-    justifyContent: 'center',
+  expertCard: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 24,
+    padding: 24,
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 6,
+  },
+  expertInfoSide: {
+    flex: 3,
+  },
+  expertHeaderRow: {
+    flexDirection: 'row',
+    gap: 16,
     alignItems: 'center',
   },
-  avatarText: {
-    color: '#f59e0b',
-    fontSize: 18,
-    fontWeight: 'bold',
+  expertAvatar: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#f3e8ff',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  oabText: {
-    color: '#475569',
-    fontSize: 11,
-    marginTop: 4,
+  expertAvatarText: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#6d28d9',
   },
-  sectionLabel: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    fontWeight: '600',
-    marginBottom: 8,
-  },
-  grid: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  gridButton: {
+  expertTitleCol: {
     flex: 1,
-    backgroundColor: '#0f172a',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    borderRadius: 8,
-    padding: 12,
   },
-  gridButtonActive: {
-    backgroundColor: '#f59e0b',
-    borderColor: '#f59e0b',
+  expertNameContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-  gridButtonTitle: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: 'bold',
+  expertName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  gridButtonSub: {
-    color: '#94a3b8',
-    fontSize: 11,
+  expertCargo: {
+    fontSize: 13,
+    color: '#6d28d9',
+    fontWeight: '600',
     marginTop: 2,
   },
-  textDark: {
-    color: '#020617',
+  expertOab: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 1,
   },
-  gridHorarios: {
+  expertDesc: {
+    fontSize: 14,
+    color: '#475569',
+    lineHeight: 22,
+    marginTop: 16,
+  },
+  expertStatsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 16,
+  },
+  statBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#f1f5f9',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  statBadgeText: {
+    fontSize: 12,
+    color: '#475569',
+    fontWeight: '500',
+  },
+  expertScheduleSide: {
+    flex: 2,
+    borderLeftWidth: Platform.OS === 'web' ? 1 : 0,
+    borderLeftColor: '#f1f5f9',
+    paddingLeft: Platform.OS === 'web' ? 24 : 0,
+    paddingTop: Platform.OS === 'web' ? 0 : 20,
+    borderTopWidth: Platform.OS === 'web' ? 0 : 1,
+    borderTopColor: '#f1f5f9',
+  },
+  scheduleTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+    marginBottom: 12,
+  },
+  daysRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 16,
+  },
+  dayColumn: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 8,
+    paddingVertical: 10,
+  },
+  dayColumnActive: {
+    backgroundColor: '#f3e8ff',
+    borderColor: '#6d28d9',
+  },
+  dayText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#94a3b8',
+  },
+  dayTextActive: {
+    color: '#6d28d9',
+  },
+  dayNum: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#475569',
+    marginTop: 2,
+  },
+  dayNumActive: {
+    color: '#6d28d9',
+  },
+  hoursGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 8,
   },
-  horarioButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    backgroundColor: '#0f172a',
+  hourButton: {
+    flex: 1,
+    minWidth: 64,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
-    borderColor: '#1e293b',
-    borderRadius: 8,
+    borderColor: '#e2e8f0',
+    borderRadius: 6,
+    paddingVertical: 8,
+    alignItems: 'center',
   },
-  horarioButtonActive: {
-    backgroundColor: '#f59e0b',
-    borderColor: '#f59e0b',
+  hourButtonActive: {
+    backgroundColor: '#6d28d9',
+    borderColor: '#6d28d9',
   },
-  horarioText: {
-    color: '#ffffff',
-    fontSize: 14,
+  hourButtonText: {
+    fontSize: 12,
     fontWeight: '600',
+    color: '#475569',
   },
-  form: {
-    gap: 12,
-  },
-  inputLabel: {
-    color: '#e2e8f0',
-    fontSize: 14,
-    fontWeight: '500',
-  },
-  input: {
-    backgroundColor: '#0f172a',
-    borderWidth: 1,
-    borderColor: '#1e293b',
-    borderRadius: 8,
-    padding: 12,
+  hourButtonTextActive: {
     color: '#ffffff',
-    fontSize: 15,
   },
-  switchContainer: {
+  legalNotice: {
+    fontSize: 10,
+    color: '#94a3b8',
+    marginTop: 16,
+    fontStyle: 'italic',
+  },
+  trustSection: {
+    backgroundColor: '#0f172a', // Dark slate elegante de rodapé informativo
+    paddingVertical: 60,
+    paddingHorizontal: 32,
+    alignItems: 'center',
+    marginTop: 40,
+  },
+  trustTitle: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 40,
+  },
+  trustGrid: {
+    flexDirection: Platform.OS === 'web' ? 'row' : 'column',
+    gap: 32,
+    maxWidth: 1000,
+    width: '100%',
+  },
+  trustItem: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 10,
+  },
+  trustItemValue: {
+    color: '#a78bfa',
+    fontSize: 32,
+    fontWeight: '900',
+  },
+  trustItemLabel: {
+    color: '#94a3b8',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 18,
+  },
+  formContainer: {
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 40,
+  },
+  backLink: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginVertical: 10,
-    paddingRight: 20,
+    gap: 8,
+    marginBottom: 20,
   },
-  switchText: {
-    color: '#94a3b8',
-    fontSize: 12,
+  backLinkLabel: {
+    fontSize: 14,
+    color: '#6d28d9',
+    fontWeight: '600',
+  },
+  formMainTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  formMainSubtitle: {
+    fontSize: 14,
+    color: '#64748b',
+    marginTop: 6,
+    marginBottom: 24,
+  },
+  formBox: {
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    padding: 24,
+    gap: 16,
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#475569',
+  },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    borderRadius: 8,
+    padding: 12,
+    color: '#0f172a',
+    fontSize: 15,
+  },
+  lgpdBox: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'center',
+    paddingRight: 20,
+    marginTop: 8,
+  },
+  lgpdText: {
+    fontSize: 11,
+    color: '#64748b',
     lineHeight: 16,
     flex: 1,
   },
-  submitButton: {
-    backgroundColor: '#f59e0b',
-    padding: 16,
+  btnSubmit: {
+    backgroundColor: '#6d28d9',
     borderRadius: 8,
+    paddingVertical: 16,
     alignItems: 'center',
     marginTop: 12,
   },
-  buttonDisabled: {
-    opacity: 0.5,
+  btnSubmitDisabled: {
+    backgroundColor: '#cbd5e1',
   },
-  submitButtonText: {
-    color: '#020617',
+  btnSubmitText: {
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '700',
   },
   successContainer: {
+    maxWidth: 500,
+    width: '100%',
+    alignSelf: 'center',
     alignItems: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 24,
     gap: 16,
-    paddingVertical: 20,
+  },
+  successIconBox: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: '#10b981',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
   },
   successTitle: {
-    color: '#ffffff',
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '800',
+    color: '#0f172a',
   },
   successSubtitle: {
-    color: '#94a3b8',
     fontSize: 14,
+    color: '#64748b',
     textAlign: 'center',
-    paddingHorizontal: 20,
+    lineHeight: 22,
   },
-  summaryBox: {
-    backgroundColor: '#0f172a',
-    borderWidth: 1,
-    borderColor: '#1e293b',
+  summaryCard: {
+    backgroundColor: '#ffffff',
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
     padding: 20,
     width: '100%',
-    gap: 12,
-    marginVertical: 10,
+    gap: 10,
+    marginVertical: 16,
   },
-  summaryItem: {
-    color: '#94a3b8',
+  summaryTitle: {
     fontSize: 14,
+    fontWeight: '700',
+    color: '#0f172a',
+    marginBottom: 4,
   },
-  boldText: {
-    color: '#ffffff',
-    fontWeight: 'bold',
+  summaryText: {
+    fontSize: 13,
+    color: '#475569',
+  },
+  bold: {
+    fontWeight: '700',
+    color: '#0f172a',
+  },
+  btnReset: {
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#cbd5e1',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  btnResetText: {
+    color: '#475569',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  footer: {
+    backgroundColor: '#ffffff',
+    paddingVertical: 32,
+    paddingHorizontal: 32,
+    borderTopWidth: 1,
+    borderTopColor: '#e2e8f0',
+    alignItems: 'center',
+    gap: 8,
+  },
+  footerText: {
+    fontSize: 12,
+    color: '#64748b',
+    textAlign: 'center',
+  },
+  footerSubText: {
+    fontSize: 10,
+    color: '#94a3b8',
+    textAlign: 'center',
+    maxWidth: 800,
+    lineHeight: 14,
   }
 });
